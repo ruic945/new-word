@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>臥室 3D 模型 (展示架空心・化妝桌雙腳修正版)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; background: #f1f5f9; }
+    #canvas-container { width: 100vw; height: 100vh; display: block; }
+    #ui {
+      position: absolute; top: 16px; left: 16px; background: rgba(255, 255, 255, 0.96);
+      padding: 14px 18px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      max-width: 330px; line-height: 1.5; font-size: 13px; z-index: 9999;
+    }
+    #ui h2 { margin: 0 0 6px 0; font-size: 15px; color: #1e293b; }
+    .btn-group { margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    button {
+      padding: 7px; background: #b45309; color: #fff; border: none;
+      border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px;
+    }
+    button:hover { background: #92400e; }
+  </style>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="ui">
+    <h2>左牆櫃體細節修正 3D</h2>
+    <div>展示架上半部<b>改為無背板空心穿透</b>；化妝桌已補齊<b>兩側獨立桌腳</b>。</div>
+    <div class="btn-group">
+      <button onclick="setViewLeftWallDetail()">特寫展示架與化妝桌</button>
+      <button onclick="setViewScreenshot()">截圖對齊視角</button>
+      <button onclick="setViewDesk()">1: 特寫書桌</button>
+      <button onclick="setViewWardrobe()">2: 特寫大衣櫃</button>
+    </div>
+  </div>
+  <div id="canvas-container"></div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf1f5f9);
+
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // 採光系統
+        scene.add(new THREE.AmbientLight(0xffffff, 0.76));
+        const sunLight = new THREE.DirectionalLight(0xfff8eb, 1.12);
+        sunLight.position.set(1.63, 4.2, -1.8);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        const fillLight = new THREE.DirectionalLight(0xe2e8f0, 0.35);
+        fillLight.position.set(1.4, 3.5, 3.5);
+        scene.add(fillLight);
+
+        // 材質庫
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0xfdfdfd, roughness: 0.9 });
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.3 });
+        const teakMat = new THREE.MeshStandardMaterial({ color: 0xb96728, roughness: 0.45 });
+        const teakLightMat = new THREE.MeshStandardMaterial({ color: 0xcf7f32, roughness: 0.4 });
+        const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e2f0a, roughness: 0.5 });
+        const handleWoodMat = new THREE.MeshStandardMaterial({ color: 0x8a3c0e, roughness: 0.4 });
+        const mattressMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.62 });
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+        const glassMat = new THREE.MeshStandardMaterial({ color: 0xbfdbfe, transparent: true, opacity: 0.32, roughness: 0.1 });
+        const blindMat = new THREE.MeshStandardMaterial({ color: 0x5c2b0c, roughness: 0.6 });
+        const sillsMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 });
+        const switchMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2 });
+
+        function createBox(w, h, d, x, y, z, mat) {
+          const geo = new THREE.BoxGeometry(w, h, d);
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.set(x + w / 2, y + h / 2, z + d / 2);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          scene.add(mesh);
+          return mesh;
+        }
+
+        // 1. 建築硬裝 (長 3.30m, 寬 2.81m)
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 4.0), floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.set(1.4, 0, 1.65);
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        createBox(0.45, 2.7, 0.45, 0, 0, 0, wallMat);       // 左上柱 45x45
+        createBox(0.1, 2.7, 3.30, 2.81, 0, 0, wallMat);     // 右長牆 330cm
+        createBox(1.80, 2.7, 0.1, 1.01, 0, 3.30, wallMat);  // 下門側牆 180cm
+        createBox(0.1, 2.7, 2.85, -0.1, 0, 0.45, wallMat);  // 左牆 200cm
+        createBox(0.04, 2.05, 0.82, 0.0, 0, 2.48, doorMat);  // 門片貼牆
+
+        // 窗台牆置中 (扣除 45cm 柱後置中)
+        const winWallX = 0.45, winWallW = 2.36;
+        const winW = 1.50, winH = 1.25, winBottomY = 0.90;
+        const winX = winWallX + (winWallW - winW) / 2;
+
+        createBox(winWallW, winBottomY, 0.1, winWallX, 0, -0.1, wallMat);
+        createBox(winX - winWallX, winH, 0.1, winWallX, winBottomY, -0.1, wallMat);
+        createBox(winX - winWallX, winH, 0.1, winX + winW, winBottomY, -0.1, wallMat);
+        createBox(winWallW, 2.70 - (winBottomY + winH), 0.25, winWallX, winBottomY + winH, -0.1, wallMat);
+        createBox(winW + 0.08, 0.035, 0.20, winX - 0.04, winBottomY - 0.035, -0.14, sillsMat);
+
+        createBox(winW, 0.04, 0.04, winX, winBottomY, -0.05, doorMat);
+        createBox(winW, 0.04, 0.04, winX, winBottomY + winH - 0.04, -0.05, doorMat);
+        createBox(0.04, winH, 0.04, winX, winBottomY, -0.05, doorMat);
+        createBox(0.04, winH, 0.04, winX + winW - 0.04, winBottomY, -0.05, doorMat);
+        createBox(0.04, winH, 0.04, winX + winW / 2 - 0.02, winBottomY, -0.05, doorMat);
+
+        createBox(winW / 2 - 0.03, winH - 0.08, 0.01, winX + 0.03, winBottomY + 0.04, -0.04, glassMat);
+        createBox(winW / 2 - 0.03, winH - 0.08, 0.01, winX + winW / 2 + 0.01, winBottomY + 0.04, -0.04, glassMat);
+
+        createBox(winW + 0.04, 0.08, 0.06, winX - 0.02, winBottomY + winH - 0.08, 0.01, blindMat);
+        createBox(winW + 0.02, 0.45, 0.02, winX - 0.01, winBottomY + winH - 0.53, 0.02, blindMat);
+
+        // ─────────────────────────────────────────────
+        // 2. 實木床架＋厚床墊
+        // ─────────────────────────────────────────────
+        const bW = 1.10, bL = 2.14, headH = 1.06, headD = 0.18;
+        const bX = 2.81 - bL, bZ = 0.0;
+
+        createBox(headD, headH, 0.04, 2.81 - headD, 0, bZ, teakMat);
+        createBox(headD, headH, 0.04, 2.81 - headD, 0, bZ + bW - 0.04, teakMat);
+        createBox(headD, 0.05, bW, 2.81 - headD, headH - 0.05, bZ, teakMat);
+        createBox(0.02, headH, bW, 2.81 - 0.02, 0, bZ, teakMat);
+        createBox(headD, 0.50, bW, 2.81 - headD, 0, bZ, teakMat);
+
+        const innerY = 0.50, innerH = headH - 0.55;
+        createBox(headD - 0.02, 0.025, bW - 0.08, 2.81 - headD + 0.01, innerY + innerH * 0.65, bZ + 0.04, teakMat);
+        for (let s = 1; s <= 3; s++) {
+          createBox(headD - 0.02, innerH * 0.35, 0.02, 2.81 - headD + 0.01, innerY + innerH * 0.65, bZ + 0.04 + s * ((bW - 0.08) / 4), teakMat);
+        }
+        const doorW = (bW - 0.36) / 2;
+        createBox(0.02, innerH * 0.62, doorW - 0.01, 2.81 - headD, innerY + 0.02, bZ + 0.18, teakLightMat);
+        createBox(0.02, innerH * 0.62, doorW - 0.01, 2.81 - headD, innerY + 0.02, bZ + 0.18 + doorW + 0.01, teakLightMat);
+        createBox(headD - 0.02, 0.02, 0.14, 2.81 - headD + 0.01, innerY + innerH * 0.32, bZ + 0.04, teakMat);
+        createBox(headD - 0.02, 0.02, 0.14, 2.81 - headD + 0.01, innerY + innerH * 0.32, bZ + bW - 0.18, teakMat);
+
+        const frameH = 0.32, bedInnerL = bL - headD;
+        createBox(bedInnerL, frameH, 0.05, bX, 0, bZ, teakMat);
+        createBox(bedInnerL, frameH, 0.05, bX, 0, bZ + bW - 0.05, teakMat);
+        createBox(0.05, frameH, bW, bX, 0, bZ, teakMat);
+        createBox(0.09, frameH + 0.02, 0.09, bX, 0, bZ, teakMat);
+        createBox(0.09, frameH + 0.02, 0.09, bX, 0, bZ + bW - 0.09, teakMat);
+
+        const mW = bW - 0.08, mL = bedInnerL - 0.03;
+        const mX = bX + 0.015, mZ = bZ + 0.04;
+        const mBaseY = 0.18, mH = 0.28;
+        createBox(mL, mH, mW, mX, mBaseY, mZ, mattressMat);
+        createBox(mL - 0.02, 0.04, mW - 0.02, mX + 0.01, mBaseY + mH, mZ + 0.01, mattressMat);
+
+        // ─────────────────────────────────────────────
+        // 3. 【1 號：2 抽書桌】
+        // ─────────────────────────────────────────────
+        const dW = 1.06, dD = 0.60, dH = 0.76;
+        const dX = 2.81 - dD, dZ = 1.10;
+
+        createBox(dD, 0.04, dW, dX, dH - 0.04, dZ, teakMat);
+        createBox(dD - 0.05, 0.12, dW - 0.10, dX + 0.02, dH - 0.16, dZ + 0.05, teakMat);
+        const sDrawW = (dW - 0.12) / 2;
+        createBox(0.02, 0.10, sDrawW, dX - 0.01, dH - 0.15, dZ + 0.05, teakLightMat);
+        createBox(0.02, 0.10, sDrawW, dX - 0.01, dH - 0.15, dZ + 0.05 + sDrawW + 0.02, teakLightMat);
+        createBox(0.025, 0.02, 0.12, dX - 0.02, dH - 0.10, dZ + 0.05 + sDrawW / 2 - 0.06, handleWoodMat);
+        createBox(0.025, 0.02, 0.12, dX - 0.02, dH - 0.10, dZ + 0.05 + sDrawW + 0.02 + sDrawW / 2 - 0.06, handleWoodMat);
+        const legS = 0.06;
+        createBox(legS, dH - 0.04, legS, dX, 0, dZ, teakMat);
+        createBox(legS, dH - 0.04, legS, dX + dD - legS, 0, dZ, teakMat);
+        createBox(legS, dH - 0.04, legS, dX, 0, dZ + dW - legS, teakMat);
+        createBox(legS, dH - 0.04, legS, dX + dD - legS, 0, dZ + dW - legS, teakMat);
+
+        // ─────────────────────────────────────────────
+        // 4. 【2 號：大衣櫃】
+        // ─────────────────────────────────────────────
+        const wX = 1.08, wZ = 3.30 - 0.55, wW = 1.20, wD = 0.55, wH = 2.06;
+        createBox(wW, wH, wD, wX, 0, wZ, teakMat);
+        createBox(wW + 0.02, 0.04, wD + 0.02, wX - 0.01, wH - 0.04, wZ, teakMat);
+
+        const wDoorH = 1.05, wDoorY = 0.96, singleDoorW = wW / 3;
+        for (let i = 0; i < 3; i++) {
+          const curX = wX + i * singleDoorW;
+          createBox(singleDoorW - 0.01, wDoorH, 0.015, curX + 0.005, wDoorY, wZ - 0.015, teakMat);
+          createBox(singleDoorW - 0.08, wDoorH - 0.08, 0.008, curX + 0.04, wDoorY + 0.04, wZ - 0.02, teakLightMat);
+        }
+        createBox(0.02, 0.18, 0.02, wX + singleDoorW - 0.03, wDoorY + 0.45, wZ - 0.035, handleWoodMat);
+        createBox(0.02, 0.18, 0.02, wX + singleDoorW + 0.01, wDoorY + 0.45, wZ - 0.035, handleWoodMat);
+        createBox(0.02, 0.18, 0.02, wX + singleDoorW * 2 + 0.01, wDoorY + 0.45, wZ - 0.035, handleWoodMat);
+
+        const smY = 0.77, smH = 0.17;
+        for (let i = 0; i < 3; i++) {
+          const curX = wX + i * singleDoorW;
+          createBox(singleDoorW - 0.01, smH - 0.01, 0.015, curX + 0.005, smY, wZ - 0.015, teakMat);
+          createBox(0.10, 0.025, 0.01, curX + singleDoorW / 2 - 0.05, smY + smH / 2 - 0.012, wZ - 0.025, darkWoodMat);
+        }
+
+        const lgW = wW / 2, lgH = 0.35;
+        for (let row = 0; row < 2; row++) {
+          const curY = 0.04 + row * lgH;
+          for (let col = 0; col < 2; col++) {
+            const curX = wX + col * lgW;
+            createBox(lgW - 0.01, lgH - 0.01, 0.015, curX + 0.005, curY, wZ - 0.015, teakMat);
+            createBox(0.14, 0.03, 0.01, curX + lgW / 2 - 0.07, curY + lgH / 2 - 0.015, wZ - 0.025, darkWoodMat);
+          }
+        }
+        createBox(0.04, 0.12, 0.02, 1.02, 1.25, 3.28, switchMat);
+
+        // ─────────────────────────────────────────────
+        // 5. 【3 號：實木展示架】(修正：上半部完全空心無背板)
+        // ─────────────────────────────────────────────
+        const shX = 0.0, shZ = 0.45, shW = 0.68, shD = 0.38, shH = 1.95;
+
+        // A. 底部雙門收納櫃 (高 50cm，此處保留實體收納箱體與背板)
+        createBox(shD, 0.50, shW, shX, 0, shZ, teakMat);
+        createBox(0.015, 0.46, shW / 2 - 0.02, shX + shD, 0.02, shZ + 0.01, teakLightMat);
+        createBox(0.015, 0.46, shW / 2 - 0.02, shX + shD, 0.02, shZ + shW / 2 + 0.01, teakLightMat);
+        createBox(0.02, 0.08, 0.02, shX + shD + 0.015, 0.24, shZ + shW / 2 - 0.035, handleWoodMat);
+        createBox(0.02, 0.08, 0.02, shX + shD + 0.015, 0.24, shZ + shW / 2 + 0.015, handleWoodMat);
+
+        // B. 上半部不對稱開放架 (★ 移除背板，前後穿透空心設計)
+        createBox(shD, shH - 0.50, 0.03, shX, 0.50, shZ, teakMat);               // 左側外側板
+        createBox(shD, shH - 0.50, 0.03, shX, 0.50, shZ + shW - 0.03, teakMat);  // 右側外側板
+        createBox(shD, 0.035, shW, shX, shH - 0.035, shZ, teakMat);             // 頂部大頂蓋板
+
+        // 第 1 層空心橫板 (頂格)
+        createBox(shD - 0.01, 0.025, shW - 0.06, shX, shH - 0.42, shZ + 0.03, teakMat);
+        createBox(shD - 0.01, 0.38, 0.025, shX, shH - 0.42, shZ + 0.36, teakMat); // 頂格垂直隔板
+
+        // 第 2 層空心橫板 (大通透放書層)
+        createBox(shD - 0.01, 0.025, shW - 0.06, shX, shH - 0.88, shZ + 0.03, teakMat);
+
+        // 第 3 層空心橫板
+        createBox(shD - 0.01, 0.025, shW - 0.06, shX, shH - 1.28, shZ + 0.03, teakMat);
+        createBox(shD - 0.01, 0.38, 0.025, shX, shH - 1.28, shZ + 0.40, teakMat); // 下格垂直隔板
+
+        // ─────────────────────────────────────────────
+        // 6. 【4 號：化妝台＋高立櫃組】(修正：補齊內側獨立桌腳)
+        // ─────────────────────────────────────────────
+        const cabX = 0.0, cabZ = 1.13, cabW = 0.42, cabD = 0.42, cabH = 1.75;
+
+        // A. 左側細框玻璃高立櫃 (42 x 42 x 175 cm)
+        createBox(cabD, cabH, cabW, cabX, 0, cabZ, teakMat);
+        createBox(0.015, cabH - 0.12, cabW - 0.08, cabX + cabD, 0.06, cabZ + 0.04, glassMat);
+        createBox(0.02, 0.18, 0.02, cabX + cabD + 0.015, 0.85, cabZ + cabW - 0.05, handleWoodMat);
+        for (let i = 1; i <= 3; i++) {
+          createBox(cabD - 0.06, 0.02, cabW - 0.06, cabX + 0.03, i * 0.42, cabZ + 0.03, teakMat);
+        }
+
+        // B. 右側化妝桌與上鏡櫃 (寬 64 x 深 42 cm)
+        const vX = 0.0, vZ = 1.55, vW = 0.64, vD = 0.42, vTableH = 0.75;
+
+        // 桌面與單抽屜
+        createBox(vD, 0.035, vW, vX, vTableH - 0.035, vZ, teakMat);
+        createBox(vD - 0.04, 0.14, vW, vX + 0.02, vTableH - 0.175, vZ, teakMat);
+        createBox(0.015, 0.12, vW - 0.06, vX + vD, vTableH - 0.165, vZ + 0.03, teakLightMat);
+        createBox(0.025, 0.02, 0.16, vX + vD + 0.015, vTableH - 0.11, vZ + vW / 2 - 0.08, handleWoodMat);
+
+        // ★★★ 化妝桌腳完整補齊（獨立雙側四角腳柱）★★★
+        const vLegSize = 0.05, vLegH = vTableH - 0.175;
+        // 外側兩支桌腳 (靠走道/床側)
+        createBox(vLegSize, vLegH, vLegSize, vX + vD - vLegSize, 0, vZ + vW - vLegSize, teakMat);
+        createBox(vLegSize, vLegH, vLegSize, vX + 0.01, 0, vZ + vW - vLegSize, teakMat);
+        // 內側兩支桌腳 (★ 補上原本缺少的靠玻璃櫃側桌腳)
+        createBox(vLegSize, vLegH, vLegSize, vX + vD - vLegSize, 0, vZ, teakMat);
+        createBox(vLegSize, vLegH, vLegSize, vX + 0.01, 0, vZ, teakMat);
+
+        // 桌面上方雙開門上櫃
+        const topCabH = 0.90;
+        createBox(0.28, topCabH, vW, vX, vTableH, vZ, teakMat);
+        createBox(0.015, topCabH - 0.04, vW / 2 - 0.02, vX + 0.28, vTableH + 0.02, vZ + 0.01, teakLightMat);
+        createBox(0.015, topCabH - 0.04, vW / 2 - 0.02, vX + 0.28, vTableH + 0.02, vZ + vW / 2 + 0.01, teakLightMat);
+        createBox(0.02, 0.14, 0.02, vX + 0.295, vTableH + topCabH / 2 - 0.07, vZ + vW / 2 - 0.03, handleWoodMat);
+        createBox(0.02, 0.14, 0.02, vX + 0.295, vTableH + topCabH / 2 - 0.07, vZ + vW / 2 + 0.01, handleWoodMat);
+
+        // 視角控制
+        window.setViewLeftWallDetail = function() {
+          camera.position.set(1.9, 1.6, 1.4);
+          controls.target.set(0.1, 1.0, 1.3);
+          controls.update();
+        };
+        window.setViewScreenshot = function() {
+          camera.position.set(-0.8, 4.2, 4.5);
+          controls.target.set(1.4, 0.9, 1.4);
+          controls.update();
+        };
+        window.setViewDesk = function() {
+          camera.position.set(1.4, 1.8, 2.6);
+          controls.target.set(2.4, 0.8, 1.6);
+          controls.update();
+        };
+        window.setViewWardrobe = function() {
+          camera.position.set(0.6, 1.7, 3.6);
+          controls.target.set(1.6, 1.1, 2.8);
+          controls.update();
+        };
+
+        // 預設特寫展示架與化妝桌修正處
+        setViewLeftWallDetail();
+
+        function animate() {
+          requestAnimationFrame(animate);
+          controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      } catch (err) {
+        console.error("渲染出錯:", err);
+      }
+    });
+  </script>
+</body>
+</html>
